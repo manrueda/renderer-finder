@@ -1,9 +1,13 @@
-var dgram   = require('dgram');
-var util    = require("util");
-var events  = require("events");
+var dgram  = require('dgram');
+var util   = require('util');
+var debug  = require('debug')('renderer-finder');
+var events = require("events");
+var http   = require('http');
+var concat = require('concat-stream');
+var xml2js = require('xml2js');
 
 function getDiscoverMessage(ST) {
-  return new Buffer(
+  var buf  = new Buffer(
     "M-SEARCH * HTTP/1.1\r\n" +
     "HOST:239.255.255.250:1900\r\n" +
     "MAN:\"ssdp:discover\"\r\n" +
@@ -11,6 +15,81 @@ function getDiscoverMessage(ST) {
     "MX:2\r\n" +
     "\r\n"
   );
+  debug('Discover message: ' + buf.toString());
+  return buf;
+}
+
+function parseDiscoverResponse(buffer){
+  debug('parsing discover buffer response');
+  var response = {};
+  var parts = buffer.toString().split('\r\n');
+  for (var i = 0; i < parts.length; i++){
+    if (i > 0){
+      response[parts[i].split(': ')[0]] = parts[i].split(': ')[1];
+    }else{
+      response.Status = parts[i];
+    }
+  }
+  return response;
+}
+
+function parseDescriptionResponse(xml, cb){
+  xml2js.parseString(xml, function(err, json){
+    var newJson = {
+      device: {},
+      service: []
+    };
+    var device = json.root.device[0];
+    for (var porp in device) {
+      if (device.hasOwnProperty(porp) && porp !== 'serviceList') {
+        newJson.device[porp] = device[porp][0];
+      }
+    }
+    var services = device.serviceList[0].service;
+    for (var serv in services) {
+      if (services.hasOwnProperty(serv)) {
+        newJson.service.push({
+          SCPDURL: services[serv].SCPDURL[0],
+          controlURL: services[serv].controlURL[0],
+          eventSubURL: services[serv].eventSubURL[0],
+          serviceId: services[serv].serviceId[0],
+          serviceType: services[serv].serviceType[0]
+        });
+      }
+    }
+
+    cb(err, newJson);
+  });
+}
+
+function getDeviceDescription(url, cb){
+  debug('getting device description');
+  fetch(url, function(err, body) {
+    if(err)
+      return cb(err);
+
+    debug('converting XML to JSON');
+    parseDescriptionResponse(body, cb);
+  });
+}
+
+function fetch(url, cb) {
+  debug('making HTTP request');
+  var req = http.get(url, function(res) {
+    if(res.statusCode !== 200) {
+      var err = new Error('Request failed');
+      err.statusCode = res.statusCode;
+      return cb(err);
+    }
+    debug('piping resonse');
+    res.pipe(concat(function(buf) {
+      debug('response piped');
+      cb(null, buf.toString());
+    }));
+  });
+
+  req.on('error', cb);
+  req.end();
 }
 
 function getSocket(ST, cb) {
@@ -18,10 +97,12 @@ function getSocket(ST, cb) {
   var server = dgram.createSocket("udp4");
   client.bind(); // So that we get a port so we can listen before sending
   var msg = getDiscoverMessage(ST);
+  debug('Client: sending message');
   client.send(msg, 0, msg.length, 1900, "239.255.255.250", function(err){
     if (err){
       cb(err);
     }
+    debug('Client: message sended');
 
     var port = client.address().port;
 
@@ -40,16 +121,28 @@ function RendererFinder(ST){
   var _socket = null;
 
   that.start = function(gatherInfo){
+    debug('Finder: getting socket');
     _socket = getSocket(sST, function(err, socket, port){
       if (err){
         that.emit('error', err);
       }
+      debug('Finder: socket obtained');
 
       socket.on("message", function (msg, rinfo) {
-        that.emit('found', rinfo);
+        var parsedMsg = parseDiscoverResponse(msg);
+        debug('Finder: device found %o', rinfo);
+        debug('                     %o', parsedMsg);
+        if (gatherInfo){
+          getDeviceDescription(parsedMsg.Location, function(err, desc){
+            that.emit('found', rinfo, parsedMsg, desc);
+          });
+        }else{
+          that.emit('found', rinfo, parsedMsg);
+        }
     	});
 
       socket.on("error", function (buf) {
+        debug('Finder: device founder error %s', buf.toString());
         that.emit('err', buf.toString());
     	});
 
@@ -60,6 +153,7 @@ function RendererFinder(ST){
   };
 
   that.stop = function(){
+    debug('Finder: stopping');
     if (_socket)
       _socket.close();
   };
@@ -67,10 +161,11 @@ function RendererFinder(ST){
   that.findOne = function(getInfo, cb){
     //check for the optional parameter
     cb = getInfo instanceof Function ? getInfo : cb;
+    getInfo = getInfo instanceof Function ? false : getInfo;
 
-    that.once('found', function(info){
+    that.once('found', function(info, msg, desc){
       that.stop();
-      cb(undefined, info);
+      cb(undefined, info, msg, desc);
     });
     that.once('error', function(err){
       that.stop();
