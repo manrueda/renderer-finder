@@ -1,0 +1,24 @@
+{
+  "name": "renderer-finder",
+  "version": "0.0.1",
+  "description": "DLNA renderer finder",
+  "main": "src/RendererFinder.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ManRueda/renderer-finder.git"
+  },
+  "keywords": [
+    "DLNA",
+    "finder",
+    "renderer"
+  ],
+  "author": "Manuel Rueda <manuel.rueda.un@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ManRueda/renderer-finder/issues"
+  },
+  "homepage": "https://github.com/ManRueda/renderer-finder#readme"
+}
