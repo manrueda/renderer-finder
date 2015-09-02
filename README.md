@@ -48,3 +48,17 @@ To stop searching you only need to call stop:
 ```javascript
 finder.stop();
 ```
+### Search for another devices
+The constructor of the finder support a custom ST as the first parameter to search for custom devices.
+
+The default ST is ```urn:schemas-upnp-org:device:MediaRenderer:1```
+
+```javascript
+var RendererFinder = require('../src/RendererFinder.js');
+var finder = new RendererFinder('urn:schemas-upnp-org:device:Basic:1');
+
+finder.findOne(function(err, info, msg){
+  console.log(info);
+  console.log(msg);
+});
+```
