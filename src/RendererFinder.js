@@ -154,7 +154,7 @@ function RendererFinder(ST){
 
   that.stop = function(){
     debug('Finder: stopping');
-    if (_socket)
+    if (_socket && _socket._handle)
       _socket.close();
   };
 

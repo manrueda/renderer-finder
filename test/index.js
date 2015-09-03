@@ -13,4 +13,4 @@ finder.on('found', function(info, msg, desc){
   console.log(desc);
 });
 
-finder.start(true);
+finder.stop(true);
