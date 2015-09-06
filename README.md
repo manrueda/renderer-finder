@@ -6,7 +6,7 @@ The module can be used to get the first renderer found or keep listening to new 
 
 ### Getting only one
 ```javascript
-var RendererFinder = require('../src/RendererFinder.js');
+var RendererFinder = require('renderer-finder');
 var finder = new RendererFinder();
 
 finder.findOne(function(err, info, msg){
@@ -54,7 +54,7 @@ The constructor of the finder support a custom ST as the first parameter to sear
 The default ST is ```urn:schemas-upnp-org:device:MediaRenderer:1```
 
 ```javascript
-var RendererFinder = require('../src/RendererFinder.js');
+var RendererFinder = require('renderer-finder');
 var finder = new RendererFinder('urn:schemas-upnp-org:device:Basic:1');
 
 finder.findOne(function(err, info, msg){
