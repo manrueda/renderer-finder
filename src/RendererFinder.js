@@ -39,6 +39,9 @@ function parseDescriptionResponse(xml, cb){
       device: {},
       service: []
     };
+    if(!json.root) { 
+      return cb(err,newJson); 
+    }
     var device = json.root.device[0];
     for (var porp in device) {
       if (device.hasOwnProperty(porp) && porp !== 'serviceList') {
