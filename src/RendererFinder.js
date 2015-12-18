@@ -25,7 +25,7 @@ function parseDiscoverResponse(buffer){
   var parts = buffer.toString().split('\r\n');
   for (var i = 0; i < parts.length; i++){
     if (i > 0){
-      response[parts[i].split(': ')[0]] = parts[i].split(': ')[1];
+      response[parts[i].split(': ')[0].toLowerCase()] = parts[i].split(': ')[1];
     }else{
       response.Status = parts[i];
     }
@@ -133,7 +133,7 @@ function RendererFinder(ST){
         debug('Finder: device found %o', rinfo);
         debug('                     %o', parsedMsg);
         if (gatherInfo){
-          getDeviceDescription(parsedMsg.Location, function(err, desc){
+          getDeviceDescription(parsedMsg.location, function(err, desc){
             that.emit('found', rinfo, parsedMsg, desc);
           });
         }else{
