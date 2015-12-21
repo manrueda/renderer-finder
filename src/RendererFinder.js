@@ -35,6 +35,9 @@ function parseDiscoverResponse(buffer){
 
 function parseDescriptionResponse(xml, cb){
   xml2js.parseString(xml, function(err, json){
+    if (err){
+      cb(err);
+    }
     var newJson = {
       device: {},
       service: []
@@ -134,6 +137,9 @@ function RendererFinder(ST){
         debug('                     %o', parsedMsg);
         if (gatherInfo){
           getDeviceDescription(parsedMsg.location, function(err, desc){
+            if (err){
+              that.emit('error', err);
+            }
             that.emit('found', rinfo, parsedMsg, desc);
           });
         }else{
